@@ -1,0 +1,41 @@
+#Ignore virtual environment configurations
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.PrivateVenv
+
+#Ignore python stuff
+__pycache__
+
+
+#vscode stuff
+.vscode
+*.code-workspace
+
+#output folder
+out/#
+plots/
+
+#BigFiles
+/BigFiles
+
+
+#Documentary:
+#	# Ignore Mac system files
+#	.DS_store
+
+#	# Ignore node_modules folder
+#	node_modules
+
+#	# Ignore all text files
+#	*.txt
+
+#	# Ignore files related to API keys
+#	.env
+
+#	# Ignore SASS config files
+#	.sass-cache
