@@ -2,15 +2,26 @@ from ultralytics import YOLO
 import cv2
 from datetime import datetime
 
-cap = cv2.VideoCapture(0)
+# Load the models to detect vehicles and license plates (lp)
 model = YOLO('models/yolov8n.pt')
 lp_model = YOLO('models/plate_model.pt')
+
+# Specify the path to the MP4 file in the "BigFiles" subfolder
+video_path = "BigFiles/minas_parqueadero_SH.mp4"
+# Create a VideoCapture object
+cap = cv2.VideoCapture(video_path)
+# Check if the video capture object is successfully opened
+if not cap.isOpened():
+    print("Error: Unable to open the video file.")
+
 
 while True:
     
     ret, frame = cap.read()
     
-    if not ret: break
+    if not ret: 
+        print("End of video.")
+        break
     
     results = model(frame, imgsz=320, stream=True, verbose=False)
     for result in results:
@@ -62,9 +73,17 @@ while True:
                             filename = f"{subfolder_path}/license_plate_{current_time}.png"
                             cv2.imwrite(filename, lp_frame)
 
-                
+    # Set the window name
+    window_name = 'Original Video Frame'
+    # Create a named window with the specified name
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    # Get the original video´s size and resize it to not damage the ratio aspect
+    original_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    original_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    # Set the window size (adjust width and height as needed)
+    cv2.resizeWindow(window_name,  original_width//4,  original_height//4)
     
-    cv2.imshow('video', frame)
+    cv2.imshow(window_name, frame)
     
     
     if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -72,3 +91,8 @@ while True:
         
 cap.release()
 cv2.destroyAllWindows()
+
+# to-do:
+# 1. Modelo para leer caracteres teniendo en cuenta la clasificación #1
+# 2. Crear mécanismo encuentre la imagen / la detección de la placa mejor
+# 3. Utilizar metodos de la clase en cuanto al preprocesamiento de las placas. 
