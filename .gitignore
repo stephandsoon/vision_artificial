@@ -23,6 +23,9 @@ plots/
 #BigFiles
 /BigFiles
 
+#Copies
+/copias
+# /fotos
 
 #Documentary:
 #	# Ignore Mac system files
