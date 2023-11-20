@@ -23,9 +23,10 @@ plots/
 #BigFiles
 /BigFiles
 
-#Copies
+#Copies and stuff
 /copias
 /fotos
+bobadas.py
 
 #Documentary:
 #	# Ignore Mac system files
