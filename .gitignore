@@ -22,11 +22,16 @@ plots/
 
 #BigFiles
 /BigFiles
+/fotos_carros
+/fotos_motos
 
 #Copies and stuff
 /copias
 /fotos
 bobadas.py
+preprocessing.ipynb
+preprocessing_selection.ipynb
+.gitignore
 
 #Documentary:
 #	# Ignore Mac system files

@@ -1,13 +1,14 @@
 from ultralytics import YOLO
 import cv2
 from datetime import datetime
+from functions import *
 
 # Load the models to detect vehicles and license plates (lp)
 model = YOLO('models/yolov8n.pt')
 lp_model = YOLO('models/plate_model.pt')
 
 # Specify the path to the MP4 file in the "BigFiles" subfolder
-video_path = "BigFiles/minas_parqueadero_SH.mp4"
+video_path = "BigFiles/Motos_Minas_abajo.mp4"
 # Create a VideoCapture object
 cap = cv2.VideoCapture(video_path)
 
@@ -58,32 +59,32 @@ while True:
                 w = r[2] - r[0]
                 h = r[3] - r[1]
                 # Draw a rectangle around that found object if it´s fulfilles the requirements (vehicle with certainty >0.65)
-                cv2.rectangle(frame, (r[0],r[1]), (r[2],r[3]), (255, 255, 255), 2) #r[:2], r[2:], (255, 255, 255), 2)
+                # cv2.rectangle(frame, (r[0],r[1]), (r[2],r[3]), (255, 255, 255), 2) #r[:2], r[2:], (255, 255, 255), 2)
                 # Extract the region inside the rectangle
                 vehicle_frame = frame[r[1]:r[3], r[0]:r[2]]
-                # Save the extracted region to a PNG file with the current timestamp
-                current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-                subfolder_path = "fotos"
-                filename = f"{subfolder_path}/vehicle_{current_time}.png"
-                cv2.imwrite(filename, vehicle_frame)
+                # # Save the extracted region to a PNG file with the current timestamp
+                # current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+                # subfolder_path = "fotos"
+                # filename = f"{subfolder_path}/vehicle_{current_time}.png"
+                # cv2.imwrite(filename, vehicle_frame)
 
-                #From here on: pass the vehicle_frame to that placa model.
+                #From here on: pass the vehicle_frame to that license plate detecion model.
                 lp_results = lp_model(vehicle_frame, imgsz=320, stream=True, verbose=False, vid_stride=1)
                 for lp_result in lp_results:
                     for lp_box in lp_result.boxes.cpu().numpy():
                         lp_cls = int(lp_box.cls[0])
                         lp_conf = lp_box.conf[0]
 
-                        lp_found = lp_cls in [0] and conf > 0.65 #  # Classes: 0: vehicle registration plate, 1: vehicle
+                        lp_found = lp_cls in [0] and conf > 0.75 # before: conf>0.65 # Classes: 0: vehicle registration plate, 1: vehicle
                         labels = {0: 'vehicle registration plate',  1: 'vehicle'}
 
-                        if vehicle_found:
+                        if lp_found:
                             # Define box coordinates
                             r = lp_box.xyxy[0].astype(int) # -> r[0]=x1; r[1]=y1; r[2]=x2; r[3]=y2;
                             w = r[2] - r[0]
                             h = r[3] - r[1]
                             # Draw a rectangle around that found object if it´s fulfilles the requirements (vehicle with certainty >0.65)
-                            cv2.rectangle(vehicle_frame, (r[0],r[1]), (r[2],r[3]), (255, 0, 0), 1) #r[:2], r[2:], (255, 255, 255), 2)
+                            # cv2.rectangle(vehicle_frame, (r[0],r[1]), (r[2],r[3]), (255, 0, 0), 1) #r[:2], r[2:], (255, 255, 255), 2)
                             # Extract the region inside the rectangle
                             lp_frame = vehicle_frame[r[1]:r[3]+1, r[0]:r[2]+1]
                             # Save the extracted region to a PNG file with the current timestamp
@@ -91,6 +92,26 @@ while True:
                             subfolder_path = "fotos"
                             filename = f"{subfolder_path}/license_plate_{current_time}.png"
                             cv2.imwrite(filename, lp_frame)
+
+                            ###-----------------Image pre-processing--------------###
+                            #Preprocessing way no.1 for yellow license plates
+                            lp_frame_preprocessed_1_step_1 = preprocessing_1_segmentation(lp_frame)
+                            lp_frame_preprocessed_2_step_1 = preprocessing_2_segmentation(lp_frame)
+                            if lp_frame_preprocessed_2_step_1[:,:,2].mean() < 35:
+                                lp_frame_preprocessed_1_step_2 = preprocessing_1_color_correction(lp_frame_preprocessed_1_step_1)
+                                #Save preprocessed license plate image 1
+                                filename_ppi_1 = f"{subfolder_path}/lp_ppi_1_{current_time}.png"
+                                cv2.imwrite(filename_ppi_1, lp_frame_preprocessed_1_step_2)
+                            else:
+                                #Preprocessing way no.2 for white license plates
+                                lp_frame_preprocessed_2_step_2 = preprocessing_2_color_correction(lp_frame_preprocessed_2_step_1)
+                                #Save preprocessed license plate image 2
+                                filename_ppi_2 = f"{subfolder_path}/lp_ppi_2_{current_time}.png"
+                                cv2.imwrite(filename_ppi_2, lp_frame_preprocessed_2_step_2)
+                                print("Damaged license plate found.")
+
+
+                            
 
     # Set the window name
     window_name = 'Original Video Frame'
