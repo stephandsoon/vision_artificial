@@ -16,6 +16,10 @@ def is_image_sharp(image, thresh=500):
     print(laplacian_var)
     return laplacian_var > thresh
 
+def otsu(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    _, bin_otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+    return bin_otsu
 
 # video_path = './Videos/Carros.mp4'
 video_path = './Videos/Motos.mp4'
@@ -105,6 +109,10 @@ while True:
                 print((rp[2] - rp[0])/ (rp[3] - rp[1]))
                 ro = r*6
                 lp_frame = frame[ro[1]:ro[3], ro[0]:ro[2]][rp[1]:rp[3], rp[0]:rp[2]]
+                
+                lp_bin = otsu(lp_frame)
+                cv2.imshow('License Plate Bin',lp_bin)
+                
                 char_results = char_model(lp_frame, imgsz=224, stream=stream, verbose=False, iou=0.4, max_det=6)
                 # char_results = char_model(lp_frame, imgsz=320, stream=stream, verbose=False, iou=0.4, max_det=6)
                 if char_results:
