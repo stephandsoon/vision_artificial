@@ -111,8 +111,6 @@ while True:
                                 print("Damaged license plate found.")
 
 
-                            
-
     # Set the window name
     window_name = 'Original Video Frame'
     # Create a named window with the specified name
@@ -133,6 +131,8 @@ cap.release()
 cv2.destroyAllWindows()
 
 # to-do:
-# 1. Utilizar metodos de la clase en cuanto al preprocesamiento de las placas. 
+# 0. Darse cuenta que si la foto es borrosa -> laplace -> número evaluando que tan borrosa es la imagen -> Threshold (500) que si
+#   uno quiere processar la imagen -> sólo procesar imagenes que no sean borrosas.  
+# 1. Rotar la imagen con findContours() / getperspective()
 # 2. Modelo para leer caracteres teniendo en cuenta la clasificación del tipo del vehiculo (moto o carro)
-# 3. Crear mécanismo que encuentre la imagen / la detección de la placa mejor
+# 3. Crear mécanismo que encuentre la imagen / la detección de la placa mejor -> definir reglas de cual imagen usar

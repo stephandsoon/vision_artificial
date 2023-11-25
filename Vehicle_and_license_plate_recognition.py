@@ -6,6 +6,8 @@ import time
 from ultralytics import YOLO
 import models
 from functions import *
+import re
+from datetime import datetime
 
 
 # Define and open externally pretrained models
@@ -15,7 +17,7 @@ char_model = YOLO(models.chars3)
 
 
 # Define the path of the video to be analized, load it and print video properties (width, height, frames per second). Raise error if opening is not possible.
-video_path = './BigFiles/minas_parqueadero_SH.mp4'
+video_path = './BigFiles/evaluation1.mp4'
 cap = cv2.VideoCapture(video_path)
 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -29,6 +31,10 @@ stream = False
 
 # Determine the vehicle classes that are to be recognized
 labels = {2:'car',3:'motorcycle',5:'bus',7:'truck'}
+labels_lp= {0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9', 10: 'A', 11: 'B', 12: 'C', 13: 'D', 14: 'E', 15: 'F', 16: 'G', 17: 'H', 18: 'I', 19: 'J', 20: 'K', 21: 'L', 22: 'M', 23: 'N', 24: 'O', 25: 'P', 26: 'R', 27: 'S', 28: 'T', 29: 'U', 30: 'V', 31: 'W', 32: 'X', 33: 'Y', 34: 'Z'}
+
+# Create an empty list where all the recognized character identifications are going to be stored
+identified_characters = []
 
 
 # Create image analization loop until the end of the video
@@ -83,7 +89,7 @@ while True:
         # Now pass the coordinate of the bounding boxes of the recognized license plate to the character identification model and iterate through them
         for lp in lps_detected:
             
-            # Extract from the original frame the detection area and re-establish the original video quality
+            # Extract from the original frame the license plate detection area and re-establish the original video quality
             lp_conf = lp[-2]
             rp = lp[:4] * 6
             # Pre-selection: sort out all the images where the width-height ratio doesn´t fit the expected license plate ratio
@@ -91,9 +97,35 @@ while True:
             ro = r*6
             lp_frame = frame[ro[1]:ro[3], ro[0]:ro[2]][rp[1]:rp[3], rp[0]:rp[2]]
             
+
+            # Image pre-processing for better character recognition
+            # Define where to save the license plate images after preprocessing
+            subfolder_path = "fotos"
+            current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename_lp = f"{subfolder_path}/license_plate_{current_time}.png"
+            cv2.imwrite(filename_lp, lp_frame)
+            #Preprocessing way no.1 for yellow license plates
+            lp_frame_preprocessed_1_step_1 = preprocessing_1_segmentation(lp_frame)
+            lp_frame_preprocessed_2_step_1 = preprocessing_2_segmentation(lp_frame)
+            if lp_frame_preprocessed_2_step_1[:,:,2].mean() < 35:
+                lp_frame_preprocessed_1_step_2 = preprocessing_1_color_correction(lp_frame_preprocessed_1_step_1)
+                preprocessed_img_3channels = cv2.cvtColor(lp_frame_preprocessed_1_step_2, cv2.COLOR_GRAY2RGB)
+                #Save preprocessed license plate image 1
+                filename_ppi_1 = f"{subfolder_path}/lp_ppi_1_{current_time}.png"
+                cv2.imwrite(filename_ppi_1, lp_frame_preprocessed_1_step_2)
+            else:
+                #Preprocessing way no.2 for white license plates and converting it into a 3 channel img
+                lp_frame_preprocessed_2_step_2 = preprocessing_2_color_correction(lp_frame_preprocessed_2_step_1)
+                preprocessed_img_3channels = cv2.cvtColor(lp_frame_preprocessed_1_step_2, cv2.COLOR_GRAY2RGB)
+                #Save preprocessed license plate image 2
+                filename_ppi_2 = f"{subfolder_path}/lp_ppi_2_{current_time}.png"
+                cv2.imwrite(filename_ppi_2, lp_frame_preprocessed_2_step_2)
+                # print("Damaged license plate found.")
+
+
             # Identify the characters on the license plate by the character identification model
-            char_results = char_model(lp_frame, imgsz=224, stream=stream, verbose=False, iou=0.4, max_det=6)
-            
+            char_results = char_model(preprocessed_img_3channels, imgsz=224, stream=stream, verbose=False, iou=0.8, max_det=6, conf=0.2)
+    
             # If no characters detected and identified just continue with next iteration
             if not char_results: continue
 
@@ -103,8 +135,25 @@ while True:
             else:
                 char_results[0].plot()
                 chars_detected = char_results[0].boxes.cpu().data.numpy().astype(int)
-                print(chars_detected)
-                
+            
+            # Extract the detected character prediction results if there are 6 characters identified
+            lp_text = ''
+            chars_detected_ordenados = sorted(chars_detected, key=lambda char: char[0])
+            for char in chars_detected_ordenados:
+                # print(char)
+                char_conf, char_cls = char[-2:]
+                rc = char[:4]
+                # Visualize the identified characters in a green box
+                cv2.rectangle(lp_frame, rc[:2], rc[2:], (0, 255, 0), 1)
+                lp_text+=labels_lp[char_cls]
+            if len(lp_text)==6:
+                print(lp_text)
+                # Append the recognized characters to the list identified_characters to save them later on
+                identified_characters.append(lp_text)
+            if x:=re.match(re.compile(r'^[A-Z]{3}\d{2}[A-Z0-9]{1}$'), lp_text):
+                text = x[0]
+                print(text)
+                                
             
             ###------------Visualization of the detected vehicles, license plates and characters-------------###
             # Visualize all the recognized characters
@@ -132,16 +181,17 @@ while True:
         break
     elif key == ord('p'):
         cv2.waitKey(0)
-    elif key == ord('x'):
-        for i in range(500):
-            ret, frame = cap.read()
-            frame640 = cv2.resize(framehd, (0, 0), fx=1/6, fy=1/6)
-            cv2.imshow("result", frame640)
-            time.sleep(1/60)
-            if not ret : break
-        cv2.waitKey(0)
 
 # Clean finish: Release the captured frame and close windows
 cap.release()
 cv2.destroyAllWindows()
+
+# Save the recognized license plates list to a txt-file
+# Open the file in write mode
+with open("recognitions.txt", 'w') as file:
+    # Write each string from the list to the file
+    for item in identified_characters:
+        file.write(item + '\n')
+
+
 

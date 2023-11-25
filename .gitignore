@@ -32,6 +32,11 @@ bobadas.py
 preprocessing.ipynb
 preprocessing_selection.ipynb
 .gitignore
+additional_info
+aplication_detect_cars_and_lp_video_2.py
+recognitions.ipynb
+alternative_devJ.py
+devJ.py
 
 #Documentary:
 #	# Ignore Mac system files

@@ -6,9 +6,9 @@ import skimage.morphology as morph
 
 ###-----------------------Lineal ilumination / intensity correction-----------------###
 
-# Definir algorithmo white-patch para crear invariancia a los cambios del color de la luz
+# Define white-patch algorithm to create invariance to light color changes
 def white_patch_correction(image):
-    # Convertir la imagen a flotante para cálculos precisos
+    # Convert image to float for accurate calculations
     image_float = image.astype(float)
 
     max_canal0 = image_float[:,:,0].max()
@@ -21,25 +21,25 @@ def white_patch_correction(image):
     img_copy[:,:,1] = 255*img_copy[:,:,1]/max_canal1
     img_copy[:,:,2] = 255*img_copy[:,:,2]/max_canal2
     
-    # Asegurarse de que los valores estén en el rango 0-255
+    # Make sure that the values are in the range 0-255
     corrected_image = np.clip(img_copy, 0, 255)
 
-    # Convertir de nuevo a tipo de datos entero
+    # Convert back to integer data type
     corrected_image = corrected_image.astype(np.uint8)
 
     return corrected_image
 
 
-#Definir la función expansión del histograma cuyo parámetro es una imagen
+#Define the histogram expansion function whose parameter is an image.
 def histogram_expansion(img):
     
-    #Crear matriz de ceros del tamaño de la imagen y tipo de dato flotante
+    #Create array of zeros of image size and floating datatype
     res = np.zeros([img.shape[0], img.shape[1]], dtype=np.float32)
     
-    #Extraer el mínimo y el máximo del conjunto de datos
+    #Extract minimum and maximum from the data set
     m = float(np.min(img))
     M = float(np.max(img))+0.0001
-    #Aplicar la función de expansión(normalización) y asegurar datos uint8
+    #Apply expansion(normalization) function and secure uint8 data
     res = (img-m)*255.0/(M-m)
     res = np.clip(res, 0, 255).astype(np.uint8)
     
@@ -82,14 +82,14 @@ def convert_image(img, color_space='RGB'):
 
 def channels(img_in): 
     for mode in MODES :
-        # Lectura de imagen y extracción de canales
+        # Image reading and channel extraction
         if mode == 'GRAY': continue
         img = convert_image(img_in, mode)
         c0 = img[:,:,0]
         c1 = img[:,:,1]
         c2 = img[:,:,2]
 
-        # Crear el gráfico
+        # Create the grafics
         fig, (ax1, ax2, ax3) = plt.subplots(1,3, figsize=(30, 10))
         fig.suptitle(f"Canales {mode}", fontsize=15, y=1.003)
 
@@ -110,30 +110,51 @@ def channels(img_in):
 
 ###-----------------------Non-lineal image correction-----------------###
 
-#Definir la función de transformación de la imagen (corrección gamma)
+#Defining the image transformation function (gamma correction)
 def gamma_correction(img, a=1.0, gamma=2): 
-    #Crear copia de la imagen tipo flotante dada la normalización
+    #Create copy of floating type image given normalization
     img_copy = img.copy().astype(np.float32)/255.0
-    #La función corrección gamma es de la forma ax^gamma, donde x es la imagen de entrada
+    #The gamma correction function is of the form ax^gamma, where x is the input image
     res_gamma = cv2.pow(img_copy,gamma)
     res = cv2.multiply(res_gamma, a)
-    #Asegurar que la los datos queden entre 0 y 255 y sean uint8
+    #Ensure that the data are between 0 and 255 and are uint8
     res[res<0] = 0
     res = res*255.0
     res[res>255] = 255
     res = res.astype(np.uint8)
     return res
 
+###---------------------Geometric transformation functions-------------###
+
+def rotate_img(img_grayscale):
+    # Find contours in the image
+    contours, _ = cv2.findContours(img_grayscale, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # Calculate the dominant orientation of contours
+    angles = []
+    for contour in contours:
+        _, _, angle = cv2.fitEllipse(contour)
+        angles.append(angle)
+
+    # Calculate the median angle
+    median_angle = np.median(angles)
+
+    # Rotate the image based on the median angle
+    rows, cols = img_grayscale.shape[:2]
+    rotation_matrix = cv2.getRotationMatrix2D((cols / 2, rows / 2), median_angle, 1)
+    rotated_image = cv2.warpAffine(img_grayscale, rotation_matrix, (cols, rows), flags=cv2.INTER_LINEAR)
+    return rotated_image
+
+
 ###---------------------Masking functions-------------------###
 
-# Función para crear una mascara negada: True -> False; False -> True
+# Function to create a negated mask: True -> False; False -> True
 def inverse_mask(mask):
     mask = np.array(mask, dtype=bool)
     res = np.ones_like(mask, dtype=bool)
     res[mask] = False
     return res
 
-# Función para segmentación de la imagen original a través de applicación de la mascara
+# Function for segmentation of the original image through mask application
 def apply_mask(img, mask):
     canal_1 = img[:,:,0]
     canal_2 = img[:,:,1]
@@ -148,18 +169,24 @@ def apply_mask(img, mask):
     return img_return
 
 def segment_image(img, mask):
-    # Crear la mascara negada
+    # Create negated mask
     mascara_neg = inverse_mask(mask)
-    # Segmentación de la imagen origional con las mascaras
+    # Segmentation of the original image using the mask
     img_segmented = apply_mask(img.copy(), mascara_neg)
     return img_segmented
 
 
 
 ###--------------------------- Preprocessing functions---------------------###
+# Define a function to for thresholding: Convert color image into a binary image based on an intelligent threshold
+def otsu(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    _, bin_otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+    return bin_otsu
+
 
 # Preprocessing for license plates that are still yellow 
-def preprocessing_1_segmentation(img, threshold=45): 
+def preprocessing_1_segmentation(img, threshold=65): 
     #Apply White-Patch algorithm to image
     img_wp = white_patch_correction(img)
 
@@ -256,3 +283,14 @@ def preprocessing_2_color_correction(img, gamma_2=5.0):
     hist_stretched_gamma = gamma_correction(r_of_rgb, a=1.0, gamma=gamma_2)
 
     return hist_stretched_gamma
+
+
+
+###-------------------------Image selection--------------------------------------###
+
+# Define a function that returns a boolean value stating if image is sharp (True) or not (False)    
+def is_image_sharp(image, thresh=500):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
+    print(laplacian_var)
+    return laplacian_var > thresh

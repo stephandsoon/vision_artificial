@@ -11,7 +11,7 @@ lp_model= YOLO(models.plate)
 char_model = YOLO(models.charbox)
 
 # video_path = './Videos/Carros.mp4'
-video_path = './Videos/Motos.mp4'
+video_path = './BigFiles/minas_parqueadero_SH.mp4'
 # video_path = './Videos/paraminas.mp4'
 
 cap = cv2.VideoCapture(video_path)
