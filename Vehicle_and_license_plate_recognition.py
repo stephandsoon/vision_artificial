@@ -1,3 +1,6 @@
+# Before executing this script download the test video from:
+# https://drive.google.com/file/d/1KD8wfVymKUBqaDVKAdiEM0jh1bQHARn5/view?usp=sharing 
+
 # Library import
 import cv2
 import numpy as np
@@ -17,7 +20,7 @@ char_model = YOLO(models.chars3)
 
 
 # Define the path of the video to be analized, load it and print video properties (width, height, frames per second). Raise error if opening is not possible.
-video_path = './BigFiles/minas_parqueadero.mp4'
+video_path = 'parqueadero_minas.mp4'
 cap = cv2.VideoCapture(video_path)
 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
