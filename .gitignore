@@ -37,6 +37,11 @@ aplication_detect_cars_and_lp_video_2.py
 recognitions.ipynb
 alternative_devJ.py
 devJ.py
+Vehicle_and_license_plate_recognition_with_preprocessing.py
+Vehicle_and_license_plate_recognition_with_preprocessing_changed.py
+functions2.py
+Vehicle_and_license_plate_recognition_changed_too.py
+Vehicle_and_license_plate_recognition_with_preprocessing_changed2.py
 
 #Documentary:
 #	# Ignore Mac system files

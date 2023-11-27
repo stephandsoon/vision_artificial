@@ -17,7 +17,7 @@ char_model = YOLO(models.chars3)
 
 
 # Define the path of the video to be analized, load it and print video properties (width, height, frames per second). Raise error if opening is not possible.
-video_path = './BigFiles/evaluation1.mp4'
+video_path = './BigFiles/minas_parqueadero.mp4'
 cap = cv2.VideoCapture(video_path)
 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -121,7 +121,9 @@ while True:
                 filename_ppi_2 = f"{subfolder_path}/lp_ppi_2_{current_time}.png"
                 cv2.imwrite(filename_ppi_2, lp_frame_preprocessed_2_step_2)
                 # print("Damaged license plate found.")
-
+                
+            # Show the preprocessed image
+            cv2.imshow('Preprocessed license plate',preprocessed_img_3channels)
 
             # Identify the characters on the license plate by the character identification model
             char_results = char_model(preprocessed_img_3channels, imgsz=224, stream=stream, verbose=False, iou=0.8, max_det=6, conf=0.2)
